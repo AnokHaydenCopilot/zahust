@@ -9,7 +9,7 @@ on:
 env:
   AWS_REGION: us-east-1
   TF_VERSION: 1.9.0
-  ANSIBLE_VERSION: 2.20.0
+  ANSIBLE_VERSION: 2.10.7
 
 jobs:
   terraform:
@@ -76,7 +76,7 @@ jobs:
 
       - name: Install Ansible and dependencies
         run: |
-          pip install ansible==${{ env.ANSIBLE_VERSION }}
+          pip install ansible-core
           ansible-galaxy collection install community.docker
 
       - name: Create SSH key
