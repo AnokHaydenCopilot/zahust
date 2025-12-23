@@ -34,3 +34,7 @@ export AWS_ACCESS_KEY_ID*
 # OS
 .DS_Store
 Thumbs.db
+
+# Documentation (local only)
+GITHUB_SETUP.md
+CHEATSHEET.md
