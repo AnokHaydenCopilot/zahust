@@ -8,7 +8,7 @@
 - **Monitoring Instance** (приватний) - Grafana + Loki + Promtail
 - **Database Instance** (приватний) - MySQL для WordPress та Grafana
 
-## 🔐 Налаштування секретів
+## Налаштування секретів
 
 ### Локальне використання
 
@@ -36,31 +36,14 @@ export AWS_SECRET_ACCESS_KEY="your_secret"
 
 ### GitHub Actions Setup
 
-Додайте наступні **Secrets** в налаштуваннях GitHub репозиторію (`Settings > Secrets and variables > Actions`):
-
+Додайте наступні **Secrets** в налаштуваннях GitHub репозиторію
 1. **AWS_ACCESS_KEY_ID** - AWS Access Key
 2. **AWS_SECRET_ACCESS_KEY** - AWS Secret Key
 3. **SSH_PRIVATE_KEY** - Вміст файлу `terraform/my-key`
 4. **SSH_PUBLIC_KEY** - Вміст файлу `terraform/my-key.pub`
 5. **ANSIBLE_VAULT_PASSWORD** - Пароль для розшифрування vault.yml (той що в `.vault_pass`)
 
-
-## 🚀 Розгортання
-
-### Перший раз (міграція на S3 backend)
-
-```bash
-# 1. Cleanup existing resources
-./cleanup.sh
-
-# 2. Setup S3 backend for Terraform state
-./setup-backend.sh
-
-# 3. Deploy infrastructure
-./deploy.sh
-```
-
-### Локально (після setup)
+### Локально
 
 ```bash
 # 1. Deploy infrastructure
@@ -78,7 +61,7 @@ ansible-playbook -i inventory.ini playbook.yml --vault-password-file ../.vault_p
 1. Push код в main гілку
 2. Вручну
 
-## 🔧 Структура проєкту
+## Структура проєкту
 
 ```
 .
@@ -99,7 +82,7 @@ ansible-playbook -i inventory.ini playbook.yml --vault-password-file ../.vault_p
 
 ```
 
-## 📝 DNS налаштування
+## DNS налаштування
 
 Додайте A записи
 

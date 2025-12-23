@@ -16,6 +16,7 @@ services:
     container_name: promtail
     volumes:
       - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./promtail-config.yaml:/etc/promtail/config.yaml
     command: -config.file=/etc/promtail/config.yaml
     restart: always
