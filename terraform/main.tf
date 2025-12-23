@@ -241,4 +241,8 @@ resource "local_file" "ansible_inventory" {
     private_key           = abspath("${path.module}/my-key")
   })
   filename = "${path.module}/../ansible/inventory.ini"
+
+  lifecycle {
+    ignore_changes = [content]
+  }
 }

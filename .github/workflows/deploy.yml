@@ -54,6 +54,17 @@ jobs:
         working-directory: ./terraform
         run: terraform apply -auto-approve
 
+      - name: Generate Ansible Inventory
+        working-directory: ./terraform
+        run: |
+          terraform output -raw traefik_public_ip > /tmp/traefik_ip
+          terraform output -raw monitoring_private_ip > /tmp/monitoring_ip
+          terraform output -raw database_private_ip > /tmp/database_ip
+          
+          # Force regenerate inventory
+          terraform state rm local_file.ansible_inventory || true
+          terraform apply -auto-approve -target=local_file.ansible_inventory
+
       - name: Get Terraform Outputs
         id: terraform-output
         working-directory: ./terraform
