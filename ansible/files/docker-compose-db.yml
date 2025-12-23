@@ -24,6 +24,7 @@ services:
   promtail:
     image: grafana/promtail:2.9.2
     container_name: promtail
+    user: root
     volumes:
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
