@@ -79,6 +79,7 @@
       template:
         src: files/traefik-dynamic.yml
         dest: /opt/traefik/traefik-dynamic.yml
+        force: yes
 
     - name: Copy Promtail config
       template:

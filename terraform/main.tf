@@ -212,6 +212,10 @@ resource "aws_instance" "monitoring" {
   tags = {
     Name = "Monitoring-Instance"
   }
+
+  lifecycle {
+    ignore_changes = [associate_public_ip_address]
+  }
 }
 
 resource "aws_instance" "database" {
@@ -224,6 +228,10 @@ resource "aws_instance" "database" {
 
   tags = {
     Name = "Database-Instance"
+  }
+
+  lifecycle {
+    ignore_changes = [associate_public_ip_address]
   }
 }
 

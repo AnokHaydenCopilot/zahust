@@ -110,9 +110,17 @@ jobs:
           ansible-playbook -i inventory.ini playbook.yml \
             --vault-password-file ../.vault_pass
 
+      - name: Restart Traefik to apply config changes
+        working-directory: ./ansible
+        run: |
+          sleep 10
+          ssh -o StrictHostKeyChecking=no -i ../terraform/my-key ubuntu@${{ needs.terraform.outputs.traefik_ip }} \
+            "cd /opt/traefik && docker compose restart traefik"
+
       - name: Verify deployment
         run: |
           echo "Traefik IP: ${{ needs.terraform.outputs.traefik_ip }}"
+          sleep 10
           echo "Checking WordPress..."
           curl -I https://wordpress.infratestapp.pp.ua || true
           echo "Checking Grafana..."
