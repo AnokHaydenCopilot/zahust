@@ -1,0 +1,55 @@
+name: Destroy Infrastructure
+
+on:
+  workflow_dispatch:  # Only manual trigger
+    inputs:
+      confirm:
+        description: 'Type "destroy" to confirm'
+        required: true
+        default: 'no'
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.9.0
+
+jobs:
+  destroy:
+    name: Terraform Destroy
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'destroy'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Create SSH key
+        run: |
+          mkdir -p terraform
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > terraform/my-key
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > terraform/my-key.pub
+          chmod 600 terraform/my-key
+          chmod 644 terraform/my-key.pub
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Destroy
+        working-directory: ./terraform
+        run: terraform destroy -auto-approve
+
+      - name: Cleanup
+        if: always()
+        run: rm -f terraform/my-key terraform/my-key.pub

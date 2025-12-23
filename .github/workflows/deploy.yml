@@ -1,0 +1,119 @@
+name: Deploy Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Manual trigger
+
+env:
+  AWS_REGION: us-east-1
+  TF_VERSION: 1.9.0
+  ANSIBLE_VERSION: 2.20.0
+
+jobs:
+  terraform:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    outputs:
+      traefik_ip: ${{ steps.terraform-output.outputs.traefik_ip }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Create SSH key
+        run: |
+          mkdir -p terraform
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > terraform/my-key
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > terraform/my-key.pub
+          chmod 600 terraform/my-key
+          chmod 644 terraform/my-key.pub
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ./terraform
+        run: terraform plan
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      - name: Get Terraform Outputs
+        id: terraform-output
+        working-directory: ./terraform
+        run: |
+          echo "traefik_ip=$(terraform output -raw traefik_public_ip)" >> $GITHUB_OUTPUT
+
+  ansible:
+    name: Ansible Deploy
+    needs: terraform
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible and dependencies
+        run: |
+          pip install ansible==${{ env.ANSIBLE_VERSION }}
+          ansible-galaxy collection install community.docker
+
+      - name: Create SSH key
+        run: |
+          mkdir -p terraform
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > terraform/my-key
+          chmod 600 terraform/my-key
+
+      - name: Create Ansible Vault password file
+        run: |
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > .vault_pass
+          chmod 600 .vault_pass
+
+      - name: Wait for instances to be ready
+        run: sleep 60
+
+      - name: Run Ansible Playbook
+        working-directory: ./ansible
+        run: |
+          ansible-playbook -i inventory.ini playbook.yml \
+            --vault-password-file ../.vault_pass
+
+      - name: Verify deployment
+        run: |
+          echo "Traefik IP: ${{ needs.terraform.outputs.traefik_ip }}"
+          echo "Checking WordPress..."
+          curl -I https://wordpress.infratestapp.pp.ua || true
+          echo "Checking Grafana..."
+          curl -I https://grafana.infratestapp.pp.ua || true
+
+  cleanup:
+    name: Cleanup Secrets
+    needs: [terraform, ansible]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Remove temporary files
+        run: |
+          rm -f terraform/my-key terraform/my-key.pub .vault_pass || true

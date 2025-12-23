@@ -1,0 +1,40 @@
+http:
+  routers:
+    grafana:
+      rule: "Host(`grafana.infratestapp.pp.ua`)"
+      entryPoints:
+        - websecure
+      service: grafana-service
+      tls:
+        certResolver: letsencrypt
+
+    grafana-http:
+      rule: "Host(`grafana.infratestapp.pp.ua`)"
+      entryPoints:
+        - web
+      service: grafana-service
+
+    wordpress:
+      rule: "Host(`wordpress.infratestapp.pp.ua`)"
+      entryPoints:
+        - websecure
+      service: wordpress-service
+      tls:
+        certResolver: letsencrypt
+
+    wordpress-http:
+      rule: "Host(`wordpress.infratestapp.pp.ua`)"
+      entryPoints:
+        - web
+      service: wordpress-service
+
+  services:
+    grafana-service:
+      loadBalancer:
+        servers:
+          - url: "http://{{ monitoring_private_ip }}:3000"
+
+    wordpress-service:
+      loadBalancer:
+        servers:
+          - url: "http://wordpress:80"

@@ -1,0 +1,11 @@
+# Non-sensitive variables that reference vault variables
+mysql_root_password: "{{ vault_mysql_root_password }}"
+wordpress_db_password: "{{ vault_wordpress_db_password }}"
+grafana_db_password: "{{ vault_grafana_db_password }}"
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
+
+# Database names
+wordpress_db_name: "wordpress_db"
+wordpress_db_user: "wordpress"
+grafana_db_name: "grafana_db"
+grafana_db_user: "grafana"

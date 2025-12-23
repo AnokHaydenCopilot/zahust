@@ -1,0 +1,12 @@
+-- Create databases
+CREATE DATABASE IF NOT EXISTS {{ wordpress_db_name }} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS {{ grafana_db_name }} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Create users and grant privileges
+CREATE USER IF NOT EXISTS '{{ wordpress_db_user }}'@'%' IDENTIFIED BY '{{ wordpress_db_password }}';
+GRANT ALL PRIVILEGES ON {{ wordpress_db_name }}.* TO '{{ wordpress_db_user }}'@'%';
+
+CREATE USER IF NOT EXISTS '{{ grafana_db_user }}'@'%' IDENTIFIED BY '{{ grafana_db_password }}';
+GRANT ALL PRIVILEGES ON {{ grafana_db_name }}.* TO '{{ grafana_db_user }}'@'%';
+
+FLUSH PRIVILEGES;

@@ -1,0 +1,62 @@
+version: "3"
+
+services:
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    ports:
+      - "80:80"
+      - "443:443"
+    command:
+      - "--api.dashboard=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@infratestapp.pp.ua"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    volumes:
+      - ./traefik-dynamic.yml:/etc/traefik/dynamic.yml:ro
+      - ./letsencrypt:/letsencrypt
+    restart: always
+    networks:
+      - traefik-network
+
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress
+    environment:
+      WORDPRESS_DB_HOST: {{ database_private_ip }}:3306
+      WORDPRESS_DB_USER: {{ wordpress_db_user }}
+      WORDPRESS_DB_PASSWORD: {{ wordpress_db_password }}
+      WORDPRESS_DB_NAME: {{ wordpress_db_name }}
+    volumes:
+      - wordpress_data:/var/www/html
+    restart: always
+    networks:
+      - traefik-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./promtail-config.yaml:/etc/promtail/config.yaml:ro
+    command: -config.file=/etc/promtail/config.yaml
+    restart: always
+    networks:
+      - traefik-network
+
+volumes:
+  wordpress_data:
+
+networks:
+  traefik-network:
+    driver: bridge

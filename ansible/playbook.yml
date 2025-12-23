@@ -1,0 +1,179 @@
+---
+- name: Install Docker
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install dependencies
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+
+    - name: Add Docker GPG key
+      shell: |
+        install -m 0755 -d /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        chmod a+r /etc/apt/keyrings/docker.gpg
+      args:
+        creates: /etc/apt/keyrings/docker.gpg
+
+    - name: Add Docker repository
+      shell: |
+        echo \
+        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+        tee /etc/apt/sources.list.d/docker.list > /dev/null
+      args:
+        creates: /etc/apt/sources.list.d/docker.list
+
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce=5:26.1.4-1~ubuntu.22.04~jammy
+          - docker-ce-cli=5:26.1.4-1~ubuntu.22.04~jammy
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        update_cache: yes
+        state: present
+        allow_downgrade: yes
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+- name: Setup Traefik Reverse Proxy
+  hosts: traefik
+  become: true
+  vars:
+    compose_path: /opt/traefik/docker-compose.yml
+  tasks:
+    - name: Create traefik directory
+      file:
+        path: /opt/traefik
+        state: directory
+        mode: '0755'
+
+    - name: Create letsencrypt directory
+      file:
+        path: /opt/traefik/letsencrypt
+        state: directory
+        mode: '0755'
+
+    - name: Copy Traefik dynamic config
+      template:
+        src: files/traefik-dynamic.yml
+        dest: /opt/traefik/traefik-dynamic.yml
+
+    - name: Copy Promtail config
+      template:
+        src: files/promtail-config.yaml.j2
+        dest: /opt/traefik/promtail-config.yaml
+      vars:
+        instance_name: traefik
+
+    - name: Copy Docker Compose
+      template:
+        src: files/docker-compose-traefik.yml
+        dest: "{{ compose_path }}"
+
+    - name: Start Traefik
+      community.docker.docker_compose_v2:
+        project_src: /opt/traefik
+        state: present
+
+- name: Setup Monitoring Stack (Grafana + Loki + Promtail)
+  hosts: monitoring
+  become: true
+  vars:
+    loki_config_path: /opt/monitoring/loki-config.yaml
+    promtail_config_path: /opt/monitoring/promtail-config.yaml
+    compose_path: /opt/monitoring/docker-compose.yml
+  tasks:
+    - name: Create monitoring directory
+      file:
+        path: /opt/monitoring
+        state: directory
+        mode: '0755'
+
+    - name: Copy Loki config
+      template:
+        src: files/loki-config.yaml.j2
+        dest: "{{ loki_config_path }}"
+
+    - name: Copy Promtail config
+      template:
+        src: files/promtail-config.yaml.j2
+        dest: "{{ promtail_config_path }}"
+      vars:
+        instance_name: monitoring
+
+    - name: Copy Grafana datasource config
+      copy:
+        src: files/datasource.yaml
+        dest: /opt/monitoring/datasource.yaml
+
+    - name: Copy Docker Compose
+      template:
+        src: files/docker-compose-monitoring.yml
+        dest: "{{ compose_path }}"
+
+    - name: Start Monitoring Stack
+      community.docker.docker_compose_v2:
+        project_src: /opt/monitoring
+        state: present
+
+- name: Setup Database (MySQL)
+  hosts: database
+  become: true
+  vars:
+    compose_path: /opt/database/docker-compose.yml
+  tasks:
+    - name: Create database directory
+      file:
+        path: /opt/database
+        state: directory
+        mode: '0755'
+
+    - name: Copy Traefik dynamic config
+      template:
+        src: files/traefik-dynamic.yml
+        dest: /opt/database/traefik-dynamic.yml
+
+    - name: Copy Promtail config
+      template:
+        src: files/promtail-config.yaml.j2
+        dest: /opt/database/promtail-config.yaml
+      vars:
+        instance_name: database
+
+    - name: Copy init DB SQL script
+      template:
+        src: files/init-db.sql.j2
+        dest: /opt/database/init-db.sql
+
+    - name: Copy Docker Compose
+      template:
+        src: files/docker-compose-db.yml
+        dest: "{{ compose_path }}"
+
+    - name: Start Database
+      community.docker.docker_compose_v2:
+        project_src: /opt/database
+        state: present
+        recreate: always

@@ -1,0 +1,15 @@
+[traefik]
+${traefik_ip} ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no' ansible_ssh_private_key_file=${private_key}
+
+[monitoring]
+${monitoring_ip} ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -i ${private_key} -o StrictHostKeyChecking=no -W %h:%p ubuntu@${traefik_ip}"' ansible_ssh_private_key_file=${private_key}
+
+[database]
+${database_ip} ansible_user=ubuntu ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ProxyCommand="ssh -i ${private_key} -o StrictHostKeyChecking=no -W %h:%p ubuntu@${traefik_ip}"' ansible_ssh_private_key_file=${private_key}
+
+[all:vars]
+loki_s3_bucket=${loki_bucket}
+aws_region=${region}
+traefik_private_ip=${traefik_private_ip}
+monitoring_private_ip=${monitoring_private_ip}
+database_private_ip=${database_private_ip}

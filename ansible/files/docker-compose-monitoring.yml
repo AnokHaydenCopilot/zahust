@@ -1,0 +1,37 @@
+version: "3"
+
+services:
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    restart: always
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: promtail
+    volumes:
+      - /var/log:/var/log
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
+      - GF_DATABASE_TYPE=mysql
+      - GF_DATABASE_HOST={{ database_private_ip }}:3306
+      - GF_DATABASE_NAME={{ grafana_db_name }}
+      - GF_DATABASE_USER={{ grafana_db_user }}
+      - GF_DATABASE_PASSWORD={{ grafana_db_password }}
+    volumes:
+      - ./datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+    restart: always
