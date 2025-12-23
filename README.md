@@ -2,7 +2,7 @@
 
 Автоматизоване розгортання інфраструктури на AWS з використанням Terraform та Ansible.
 
-## 🏗️ Архітектура
+## Архітектура
 
 - **Traefik Instance** (публічний) - Reverse proxy з SSL від Let's Encrypt
 - **Monitoring Instance** (приватний) - Grafana + Loki + Promtail
@@ -44,16 +44,23 @@ export AWS_SECRET_ACCESS_KEY="your_secret"
 4. **SSH_PUBLIC_KEY** - Вміст файлу `terraform/my-key.pub`
 5. **ANSIBLE_VAULT_PASSWORD** - Пароль для розшифрування vault.yml (той що в `.vault_pass`)
 
-### Як додати Secret в GitHub:
-```bash
-# 1. Перейдіть до репозиторію на GitHub
-# 2. Settings → Secrets and variables → Actions → New repository secret
-# 3. Додайте кожен секрет окремо
-```
 
 ## 🚀 Розгортання
 
-### Локально
+### Перший раз (міграція на S3 backend)
+
+```bash
+# 1. Cleanup existing resources
+./cleanup.sh
+
+# 2. Setup S3 backend for Terraform state
+./setup-backend.sh
+
+# 3. Deploy infrastructure
+./deploy.sh
+```
+
+### Локально (після setup)
 
 ```bash
 # 1. Deploy infrastructure
@@ -68,15 +75,8 @@ ansible-playbook -i inventory.ini playbook.yml --vault-password-file ../.vault_p
 
 ### Через GitHub Actions
 
-1. Push код в main гілку:
-```bash
-git add .
-git commit -m "Deploy infrastructure"
-git push origin main
-```
-
-2. Або запустіть вручну:
-   - Actions → Deploy Infrastructure → Run workflow
+1. Push код в main гілку
+2. Вручну
 
 ## 🔧 Структура проєкту
 
@@ -91,7 +91,7 @@ git push origin main
 │   ├── files/          # Docker Compose & configs
 │   └── group_vars/
 │       └── all/
-│           ├── vault.yml    # 🔒 Зашифровані паролі
+│           ├── vault.yml    # Зашифровані паролі
 │           └── vars.yml     # Публічні змінні
 └── .github/
     └── workflows/
@@ -101,26 +101,13 @@ git push origin main
 
 ## 📝 DNS налаштування
 
-Додайте A записи в Azure DNS (або інший DNS провайдер):
+Додайте A записи
 
-- `wordpress.infratestapp.pp.ua` → `<TRAEFIK_PUBLIC_IP>`
-- `grafana.infratestapp.pp.ua` → `<TRAEFIK_PUBLIC_IP>`
+- `wordpress.домен` → `<TRAEFIK_PUBLIC_IP>`
+- `grafana.домен` → `<TRAEFIK_PUBLIC_IP>`
 
-## 🔗 Доступ до сервісів
 
-- **WordPress**: https://wordpress.infratestapp.pp.ua
-- **Grafana**: https://grafana.infratestapp.pp.ua
-  - User: `admin`
-  - Password: (дивись у `vault.yml`)
-
-## 🗑️ Видалення інфраструктури
-
-```bash
-cd terraform
-terraform destroy -auto-approve
-```
-
-## 📊 Моніторинг
+## Моніторинг
 
 Логи всіх сервісів збираються через Promtail → Loki → Grafana.
 
@@ -128,11 +115,3 @@ terraform destroy -auto-approve
 1. Відкрийте Grafana
 2. Explore → Loki
 3. Query: `{job="dockerlogs", instance="traefik"}`
-
-## 🔒 Безпека
-
-- ✅ Паролі зашифровані через Ansible Vault
-- ✅ SSH ключі не в репозиторії
-- ✅ AWS credentials в GitHub Secrets
-- ✅ SSL сертифікати автоматично від Let's Encrypt
-- ✅ Приватні інстанси без публічного доступу
