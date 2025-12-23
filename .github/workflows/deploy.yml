@@ -71,6 +71,13 @@ jobs:
         run: |
           echo "traefik_ip=$(terraform output -raw traefik_public_ip)" >> $GITHUB_OUTPUT
 
+      - name: Upload Ansible inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-inventory
+          path: ansible/inventory.ini
+          retention-days: 1
+
   ansible:
     name: Ansible Deploy
     needs: terraform
@@ -79,6 +86,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download Ansible inventory
+        uses: actions/download-artifact@v4
+        with:
+          name: ansible-inventory
+          path: ansible/
 
       - name: Setup Python
         uses: actions/setup-python@v5
