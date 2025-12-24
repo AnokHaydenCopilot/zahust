@@ -26,7 +26,7 @@ services:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "3001:3001"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD={{ grafana_admin_password }}
       - GF_DATABASE_TYPE=mysql

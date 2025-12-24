@@ -32,7 +32,7 @@ http:
     grafana-service:
       loadBalancer:
         servers:
-          - url: "http://{{ monitoring_private_ip }}:3000"
+          - url: "http://{{ monitoring_private_ip }}:3001"
 
     wordpress-service:
       loadBalancer:
